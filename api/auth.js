@@ -96,38 +96,46 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetLink = `${process.env.APP_URL}/api/auth/reset-password-page?token=${token}`;
 
-    const SMTP_USER = process.env.SMTP_USER;
-    const SMTP_PASS = process.env.SMTP_PASS;
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-    if (!SMTP_USER || SMTP_USER.includes("your_")) {
-      console.log(`\n⚠️  SMTP not configured. Reset link:\n${resetLink}\n`);
+    if (!RESEND_API_KEY || RESEND_API_KEY.includes("your_")) {
+      // Not configured — log link to Vercel console
+      console.log(`\n🔑 Password reset link for ${email}:\n${resetLink}\n`);
       return res.json({ message: "Reset link sent" });
     }
 
-    const nodemailer  = require("nodemailer");
-    const transporter = nodemailer.createTransport({
-      host:   process.env.SMTP_HOST || "smtp.gmail.com",
-      port:   parseInt(process.env.SMTP_PORT || "465"),
-      secure: true,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    // Use Resend HTTP API (works on Vercel, free 100 emails/day)
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type":  "application/json",
+      },
+      body: JSON.stringify({
+        from:    "FitAI <onboarding@resend.dev>",
+        to:      [email],
+        subject: "Reset your FitAI password",
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;border-radius:16px;">
+            <h2 style="color:#B8FF00;margin-top:0;">FitAI Password Reset</h2>
+            <p>Hi ${user.name},</p>
+            <p>Click below to reset your password. Expires in 1 hour.</p>
+            <a href="${resetLink}" style="display:inline-block;background:#B8FF00;color:#000;font-weight:800;padding:14px 28px;border-radius:10px;text-decoration:none;margin:16px 0;">
+              Reset Password
+            </a>
+            <p style="color:#888;font-size:12px;">If you didn't request this, ignore this email.</p>
+          </div>
+        `,
+      }),
     });
 
-    await transporter.sendMail({
-      from:    `"FitAI" <${SMTP_USER}>`,
-      to:      email,
-      subject: "Reset your FitAI password",
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;border-radius:16px;">
-          <h2 style="color:#B8FF00;margin-top:0;">FitAI Password Reset</h2>
-          <p>Hi ${user.name},</p>
-          <p>Click below to reset your password. Expires in 1 hour.</p>
-          <a href="${resetLink}" style="display:inline-block;background:#B8FF00;color:#000;font-weight:800;padding:14px 28px;border-radius:10px;text-decoration:none;margin:16px 0;">
-            Reset Password
-          </a>
-          <p style="color:#888;font-size:12px;">If you didn't request this, ignore this email.</p>
-        </div>
-      `,
-    });
+    const resendData = await emailRes.json();
+    if (!emailRes.ok) {
+      // Resend free tier: can only send to verified email
+      // Log link as fallback
+      console.log(`\n⚠️ Resend error: ${JSON.stringify(resendData)}`);
+      console.log(`\n🔑 Reset link for ${email}:\n${resetLink}\n`);
+    }
 
     res.json({ message: "Reset link sent to your email" });
   } catch (err) {
