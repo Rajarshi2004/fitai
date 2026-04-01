@@ -55,7 +55,7 @@ Respond ONLY with this exact JSON, no extra text or markdown:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048, responseMimeType: "application/json" },
         }),
       }
     );
@@ -64,8 +64,8 @@ Respond ONLY with this exact JSON, no extra text or markdown:
     if (geminiData.error) return res.status(502).json({ error: geminiData.error.message });
 
     const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const clean = rawText.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean.slice(clean.indexOf("{")));
+    // If responseMimeType is set, Gemini returns ONLY perfect JSON (no markdown).
+    const parsed = JSON.parse(rawText.trim());
 
     res.json(parsed);
   } catch (err) {
