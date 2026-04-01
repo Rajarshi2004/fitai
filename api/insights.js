@@ -2,7 +2,7 @@
 const express = require("express");
 const Workout = require("../models/Workout");
 const { verifyToken } = require("../middleware/auth");
-const router  = express.Router();
+const router = express.Router();
 
 router.use(verifyToken);
 
@@ -19,15 +19,15 @@ router.post("/generate", async (req, res) => {
 
     const historyText = workouts.length
       ? workouts.map(w =>
-          `- ${w.name || "Workout"} (${new Date(w.started_at).toDateString()}): ` +
-          `${w.duration_minutes||0}min, ${w.calories||0}kcal, ` +
-          (w.sets||[]).slice(0,3).map(s=>`${s.exercise} ${s.weight_kg}kg×${s.reps}`).join(", ")
-        ).join("\n")
+        `- ${w.name || "Workout"} (${new Date(w.started_at).toDateString()}): ` +
+        `${w.duration_minutes || 0}min, ${w.calories || 0}kcal, ` +
+        (w.sets || []).slice(0, 3).map(s => `${s.exercise} ${s.weight_kg}kg×${s.reps}`).join(", ")
+      ).join("\n")
       : "No recent workout data — give general advice based on profile.";
 
     const prompt = `Athlete profile:
-Name: ${user.name}, Age: ${user.age||25}, Weight: ${user.weight_kg||75}kg
-Goal: ${user.fitness_goal||"general_fitness"}, Level: ${user.experience_level||"intermediate"}
+Name: ${user.name}, Age: ${user.age || 25}, Weight: ${user.weight_kg || 75}kg
+Goal: ${user.fitness_goal || "general_fitness"}, Level: ${user.experience_level || "intermediate"}
 
 Recent workouts (last 3 weeks):
 ${historyText}
@@ -49,7 +49,7 @@ Respond ONLY with this exact JSON, no extra text or markdown:
 }`;
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL||"gemini-2.5-flash"}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || "gemini-2.5-flash"}:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,8 +64,8 @@ Respond ONLY with this exact JSON, no extra text or markdown:
     if (geminiData.error) return res.status(502).json({ error: geminiData.error.message });
 
     const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const clean   = rawText.replace(/```json|```/g, "").trim();
-    const parsed  = JSON.parse(clean.slice(clean.indexOf("{")));
+    const clean = rawText.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean.slice(clean.indexOf("{")));
 
     res.json(parsed);
   } catch (err) {
