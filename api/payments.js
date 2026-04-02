@@ -33,7 +33,7 @@ router.get("/checkout-page", async (req, res) => {
     const amount   = Number(process.env.SUBSCRIPTION_PRICE_INR || 50) * 100;
     const order    = await razorpay.orders.create({
       amount, currency: "INR",
-      receipt: `fitai_${userId||"guest"}_${Date.now()}`,
+      receipt: `rcpt_${Date.now()}`.substring(0, 40),
     });
 
     const key_id     = process.env.RAZORPAY_KEY_ID;
