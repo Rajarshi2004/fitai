@@ -107,7 +107,8 @@ router.get("/checkout-page", async (req, res) => {
 </body>
 </html>`);
   } catch (err) {
-    res.status(500).send(`<h2 style="color:red;font-family:sans-serif;padding:40px">Error: ${err.message}</h2>`);
+    const errMsg = err.message || (err.error && err.error.description) || JSON.stringify(err);
+    res.status(500).send(`<h2 style="color:red;font-family:sans-serif;padding:40px">Payment Error: ${errMsg}</h2>`);
   }
 });
 

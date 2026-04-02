@@ -1,6 +1,7 @@
 // api/users.js
 const express = require("express");
 const User    = require("../models/User");
+const Workout = require("../models/Workout");
 const { verifyToken } = require("../middleware/auth");
 const router  = express.Router();
 
@@ -29,6 +30,17 @@ router.put("/me", async (req, res) => {
     res.json({ ...updated.toObject(), id: updated._id });
   } catch (err) {
     res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// DELETE /api/users/me
+router.delete("/me", async (req, res) => {
+  try {
+    await Workout.deleteMany({ user_id: req.user._id });
+    await User.findByIdAndDelete(req.user._id);
+    res.json({ message: "Account deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete account" });
   }
 });
 

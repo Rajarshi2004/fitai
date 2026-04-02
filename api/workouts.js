@@ -2,7 +2,7 @@
 const express = require("express");
 const Workout = require("../models/Workout");
 const { verifyToken } = require("../middleware/auth");
-const router  = express.Router();
+const router = express.Router();
 
 router.use(verifyToken);
 

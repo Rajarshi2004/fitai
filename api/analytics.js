@@ -40,24 +40,27 @@ router.get("/weekly", async (req, res) => {
 // GET /api/analytics/full
 router.get("/full", async (req, res) => {
   try {
+    // Use the last 6 weeks for graphing
     const since = new Date();
-    since.setMonth(since.getMonth() - 6);
+    since.setDate(since.getDate() - 42); // 6 weeks ago
 
     const workouts = await Workout.find({
       user_id: req.user._id,
       started_at: { $gte: since }
     }).sort({ started_at: 1 });
 
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
-    const monthWorkouts = workouts.filter(w => new Date(w.started_at) >= thisMonth);
+    const thisWeek = new Date();
+    const day = thisWeek.getDay(), diff = thisWeek.getDate() - day + (day === 0 ? -6 : 1);
+    thisWeek.setDate(diff);
+    thisWeek.setHours(0,0,0,0);
+    const weekWorkouts = workouts.filter(w => new Date(w.started_at) >= thisWeek);
 
     const stats = {
-      workouts:   monthWorkouts.length,
-      calories:   monthWorkouts.reduce((s,w) => s + (w.calories||0), 0),
-      volume:     Math.round(monthWorkouts.reduce((s,w) =>
+      workouts:   weekWorkouts.length,
+      calories:   weekWorkouts.reduce((s,w) => s + (w.calories||0), 0),
+      volume:     Math.round(weekWorkouts.reduce((s,w) =>
         s + (w.sets||[]).reduce((ss,set) => ss + ((set.weight_kg||0)*(set.reps||0)*(set.sets||1)),0),0)),
-      avgPerWeek: monthWorkouts.length > 0 ? Math.round(monthWorkouts.length / 4) : 0,
+      avgPerWeek: workouts.length > 0 ? Math.round(workouts.length / 6) : 0,
     };
 
     // Muscle balance from sets
@@ -71,12 +74,53 @@ router.get("/full", async (req, res) => {
       });
     });
     const total = Object.values(muscleCount).reduce((a,b)=>a+b,1);
-    const balance = ["Chest","Back","Legs","Shoulders","Arms","Core"].map(m => ({
+    const muscles = ["Chest","Back","Legs","Shoulders","Arms","Core"];
+    const balance = muscles.map(m => ({
       muscle: m,
       pct: muscleCount[m] ? Math.round((muscleCount[m]/total)*100) : 0
     }));
 
-    res.json({ stats, balance });
+    // Generate Frequency Graph and Strength Curve Graphs over the 6 weeks
+    const weeksData = [0,0,0,0,0,0];
+    const msInWeek = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    
+    const strengthData = {};
+    muscles.forEach(m => strengthData[m] = [[],[],[],[],[],[]]); 
+
+    workouts.forEach(w => {
+        const diffWeeks = Math.floor((now - new Date(w.started_at).getTime()) / msInWeek);
+        if (diffWeeks >= 0 && diffWeeks < 6) {
+           const idx = 5 - diffWeeks; 
+           weeksData[idx]++;
+           
+           (w.sets||[]).forEach(s => {
+               if (s.exercise && s.weight_kg) {
+                   const m = detectMuscle(s.exercise);
+                   if (strengthData[m]) {
+                       strengthData[m][idx].push(s.weight_kg);
+                   }
+               }
+           });
+        }
+    });
+
+    const frequency = {
+        labels: ["-5w", "-4w", "-3w", "-2w", "Last", "This"],
+        datasets: [{ data: weeksData }]
+    };
+
+    const strengthCurve = {};
+    muscles.forEach(m => {
+        strengthCurve[m] = {
+            labels: ["-5w", "-4w", "-3w", "-2w", "Last", "This"],
+            datasets: [{ data: strengthData[m].map(weekWeights => 
+                weekWeights.length === 0 ? 0 : Math.round(Math.max(...weekWeights))
+            ) }]
+        };
+    });
+
+    res.json({ stats, balance, frequency, strengthCurve });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch analytics" });
   }
