@@ -44,20 +44,22 @@ router.get("/weekly", async (req, res) => {
 // GET /api/analytics/full
 router.get("/full", async (req, res) => {
   try {
-    // Use the last 6 weeks for graphing
-    const since = new Date();
-    since.setDate(since.getDate() - 42); // 6 weeks ago
+    const thisWeek = new Date();
+    const day = thisWeek.getDay(), diff = thisWeek.getDate() - day + (day === 0 ? -6 : 1);
+    thisWeek.setDate(diff);
+    thisWeek.setHours(0,0,0,0);
+    const thisWeekStartMs = thisWeek.getTime();
+
+    // Start exactly 5 weeks before this current calendar week
+    const since = new Date(thisWeekStartMs);
+    since.setDate(since.getDate() - 35);
 
     const workouts = await Workout.find({
       user_id: req.user._id,
       started_at: { $gte: since }
     }).sort({ started_at: 1 });
 
-    const thisWeek = new Date();
-    const day = thisWeek.getDay(), diff = thisWeek.getDate() - day + (day === 0 ? -6 : 1);
-    thisWeek.setDate(diff);
-    thisWeek.setHours(0,0,0,0);
-    const weekWorkouts = workouts.filter(w => new Date(w.started_at) >= thisWeek);
+    const weekWorkouts = workouts.filter(w => new Date(w.started_at) >= thisWeekStartMs);
 
     const stats = {
       workouts:   weekWorkouts.length,
@@ -87,15 +89,21 @@ router.get("/full", async (req, res) => {
     // Generate Frequency Graph and Strength Curve Graphs over the 6 weeks
     const weeksData = [0,0,0,0,0,0];
     const msInWeek = 7 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
     
     const strengthData = {};
     muscles.forEach(m => strengthData[m] = [[],[],[],[],[],[]]); 
 
     workouts.forEach(w => {
-        const diffWeeks = Math.floor((now - new Date(w.started_at).getTime()) / msInWeek);
-        if (diffWeeks >= 0 && diffWeeks < 6) {
-           const idx = 5 - diffWeeks; 
+        const workoutMs = new Date(w.started_at).getTime();
+        let idx;
+        if (workoutMs >= thisWeekStartMs) {
+            idx = 5; // "This"
+        } else {
+            const weeksBefore = Math.floor((thisWeekStartMs - workoutMs - 1) / msInWeek) + 1;
+            idx = 5 - weeksBefore; 
+        }
+
+        if (idx >= 0 && idx <= 5) {
            weeksData[idx]++;
            
            (w.sets||[]).forEach(s => {
