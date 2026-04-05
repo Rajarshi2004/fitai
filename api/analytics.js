@@ -10,7 +10,11 @@ router.use(verifyToken);
 router.get("/weekly", async (req, res) => {
   try {
     const since = new Date();
-    since.setDate(since.getDate() - 7);
+    // Align with frontend chart (Mon-Sun). Reset occurs immediately after Sunday ends (Monday 00:00)
+    const day = since.getDay(); 
+    const diff = since.getDate() - day + (day === 0 ? -6 : 1);
+    since.setDate(diff);
+    since.setHours(0,0,0,0);
 
     const workouts = await Workout.find({
       user_id: req.user._id,
