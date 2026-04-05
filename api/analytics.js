@@ -118,14 +118,14 @@ router.get("/full", async (req, res) => {
     });
 
     const frequency = {
-        labels: ["-5w", "-4w", "-3w", "-2w", "Last", "This"],
+        labels: ["Wk 1", "Wk 2", "Wk 3", "Wk 4", "Wk 5", "This"],
         datasets: [{ data: weeksData }]
     };
 
     const strengthCurve = {};
     muscles.forEach(m => {
         strengthCurve[m] = {
-            labels: ["-5w", "-4w", "-3w", "-2w", "Last", "This"],
+            labels: ["Wk 1", "Wk 2", "Wk 3", "Wk 4", "Wk 5", "This"],
             datasets: [{ data: strengthData[m].map(weekWeights => 
                 weekWeights.length === 0 ? 0 : Math.round(Math.max(...weekWeights))
             ) }]
