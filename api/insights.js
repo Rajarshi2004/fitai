@@ -76,6 +76,7 @@ Respond ONLY with this JSON:
     }
 
     const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    let geminiData;
     try {
       const geminiRes = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -89,7 +90,7 @@ Respond ONLY with this JSON:
         }
       );
 
-      const geminiData = await geminiRes.json();
+      geminiData = await geminiRes.json();
       if (geminiData.error) {
         return res.status(200).json({ weekSummary: `⚠️ AI ERROR: ${geminiData.error.message}` });
       }
