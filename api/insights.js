@@ -17,6 +17,16 @@ router.get("/debug-env", (req, res) => {
 
 router.use(verifyToken);
 
+// GET /api/insights/
+router.get("/", async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    res.json(user?.last_insights || null);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch insights" });
+  }
+});
+
 // POST /api/insights/generate
 router.post("/generate", async (req, res) => {
   try {
