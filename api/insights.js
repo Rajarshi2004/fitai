@@ -60,7 +60,7 @@ Return ONLY this JSON structure, NO markdown:
       return res.status(200).json({ weekSummary: "⚠️ Set GEMINI_API_KEY in Vercel" });
     }
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash"; // Using 1.5-flash for maximum JSON stability
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash"; // Using user's preferred model
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
