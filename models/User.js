@@ -20,6 +20,8 @@ const UserSchema = new mongoose.Schema({
   payment_provider:   String,
   reset_token:        String,
   reset_token_expiry: Date,
+  last_insights:      Object,
+  last_insights_at:   Date,
 }, { timestamps: true });
 
 module.exports = mongoose.models.User || mongoose.model("User", UserSchema);
