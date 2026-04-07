@@ -5,6 +5,16 @@ const User = require("../models/User");
 const { verifyToken } = require("../middleware/auth");
 const router = express.Router();
 
+// GET /api/insights/debug-env (Public for debugging)
+router.get("/debug-env", (req, res) => {
+  res.json({
+    GEMINI_API_KEY_EXISTS: !!process.env.GEMINI_API_KEY,
+    GEMINI_API_KEY_PREFIX: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 6) + "..." : "NONE",
+    GEMINI_MODEL: process.env.GEMINI_MODEL || "NOT_SET",
+    NODE_ENV: process.env.NODE_ENV
+  });
+});
+
 router.use(verifyToken);
 
 // POST /api/insights/generate
