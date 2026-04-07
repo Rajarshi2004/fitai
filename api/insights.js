@@ -69,11 +69,13 @@ Respond ONLY with this exact JSON, no extra text:
 
     // 4. API Key Check
     if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
+      console.error("DEBUG: GEMINI_API_KEY is null or undefined");
+      return res.status(500).json({ error: "BACKEND_ERROR: GEMINI_API_KEY is NOT set in Vercel environment variables." });
     }
 
+    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || "gemini-1.5-flash"}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
